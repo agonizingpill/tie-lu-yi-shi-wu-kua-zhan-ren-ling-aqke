@@ -59,6 +59,7 @@ def rank_search(search_id):
             WHERE state = 'sealed' AND found_on BETWEEN %s AND %s ORDER BY seal_id LIMIT 3000
         """, (start - timedelta(days=1), start + timedelta(days=2))).fetchall()
         candidates = score_clues(search, bags)
+        record_snapshot(db, search_id, bags)
         with db.cursor() as cursor:
             cursor.executemany("""
                 INSERT INTO recall_hits (search_id, seal_id, rank, score, exact_features, collision_slots, auditable)
@@ -70,6 +71,30 @@ def rank_search(search_id):
                          "collision_slots": sum(hit["collision_slots"] for hit in candidates)})
         db.execute("UPDATE search_slips SET status = 'ranked', model_summary = %s WHERE id = %s",
                    (summary, search_id))
+
+
+def record_snapshot(db, search_id, bags):
+    """首次打分时的全部封袋，供稽核两版权重复用；已存在则保留最初一批。"""
+    from railway.services.encoding import ALGORITHM, CATEGORY_WEIGHT, COLOR_WEIGHT, DIMENSIONS
+
+    inserted = db.execute("""
+        INSERT INTO recall_snapshots (search_id, algorithm, dimensions, category_weight, color_weight, compared)
+        VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (search_id) DO NOTHING RETURNING search_id
+    """, (search_id, ALGORITHM, DIMENSIONS, CATEGORY_WEIGHT, COLOR_WEIGHT, len(bags))).fetchone()
+    if inserted:
+        with db.cursor() as cursor:
+            cursor.executemany("""
+                INSERT INTO recall_snapshot_bags (search_id, seal_id, category, color, description, train_no)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, [(search_id, bag["seal_id"], bag["category"], bag["color"], bag["description"],
+                   bag["train_no"]) for bag in bags])
+
+
+def snapshot_bags(db, search_id):
+    return db.execute("""
+        SELECT seal_id, category, color, description, train_no
+        FROM recall_snapshot_bags WHERE search_id = %s ORDER BY seal_id
+    """, (search_id,)).fetchall()
 
 
 def record_failure(search_id):

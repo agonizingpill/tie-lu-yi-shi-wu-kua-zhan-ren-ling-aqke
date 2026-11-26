@@ -2,6 +2,7 @@ import {api} from './api.js';
 import {masthead} from './components/layout.js';
 import {showMessage} from './forms.js';
 import {endSession, store} from './store.js';
+import {audit} from './pages/audit.js';
 import {claims} from './pages/claims.js';
 import {loginPage} from './pages/login.js';
 import {recall} from './pages/recall.js';
@@ -9,7 +10,7 @@ import {registry} from './pages/registry.js';
 import {transfer} from './pages/transfer.js';
 
 const shell = document.getElementById('shell');
-const pages = {registry, recall, transfer, claims};
+const pages = {registry, recall, transfer, claims, audit};
 
 async function render() {
   const route = location.hash.slice(1);

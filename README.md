@@ -13,7 +13,7 @@
 | 北砾柜员 | `beili@rail.test` | 入柜、本站受理、目的站扫描、交付 |
 | 河桥关柜员 | `heqiao@rail.test` | 与北砾柜员权限相同，本站范围为河桥关 |
 | 区段调度 | `dispatch@rail.test` | 查阅台账，为已核验跨站封袋安排车次 |
-| 票务稽核 | `audit@rail.test` | 查阅封袋、线索和历史记录 |
+| 票务稽核 | `audit@rail.test` | 查阅封袋、线索、历史记录，发起颜色权重敏感性稽核 |
 
 口令均为 `RailDemo26`。演示数据的过去拾获日期是 2026-11-23。
 
@@ -65,9 +65,14 @@ docker compose exec -T backend python -m scripts.seed_demo
 `backend/railway/services/encoding.py` 根据类别、主色、车次和规范化公开描述构造特征。类别权重为 3，主色为 2，车次和描述词/相邻双字符为 1。FeatureHasher 使用 64 维带符号映射，然后计算稀疏余弦，相似度至少 0.2 的前 12 件按分值和封签号排序。同一版本与同一批封袋的结果可复现。每项保留碰撞桶计数与未哈希特征交集。类别一致且有直接公开词证据才能进入私密核验。输入窗口为乘车日前一天至后两天，由日期和当前在柜状态限制。计算异常标记线索单失败。
 
 - `backend/migrations/001_custody.sql` 建立领域表、外键及唯一性约束。
+- `backend/migrations/002_weight_audit.sql` 建立首次打分封袋快照与权重稽核样本、结果表。
 - `backend/railway/{models,services,routes}` 实现依赖交易和接口。
 - `backend/scripts/seed_demo.py` 按站点、账号、封签幂等导入。
-- `frontend/src/pages` 提供封袋台账、公开线索、跨站转运、认领交付。
+- `frontend/src/pages` 提供封袋台账、公开线索、跨站转运、认领交付、权重稽核。
 - 枚举定义在 `backend/railway/enums.py` 和 `frontend/src/enums.js`。SQL 约束重复类别、角色、封袋、线索、认领、转运状态。后端请求 schema 使用类别，服务检查办理状态和权限。前端类别选择器用在台账和线索，布局展示角色，状态组件用于四页。
+
+### 颜色权重稽核
+
+票务稽核在「权重稽核」页按当前已交付认领开一轮：冻结截至开测时已提交的交付（开测后确认的留给下一轮），用每张线索首次打分时封存的封袋全集，分别按原权重（类别 3 / 主色 2）和颜色减半（类别 3 / 主色 1）复算真件名次，比较前十二名命中率，并列出跌出前十二名的线索。缺首次打分快照的旧线索单列，不计入命中率分母。复算按样本主键幂等写入，中断后可续跑，同一张线索不会重复计数。
 
 源码以 MIT 许可提供，见 `LICENSE`。

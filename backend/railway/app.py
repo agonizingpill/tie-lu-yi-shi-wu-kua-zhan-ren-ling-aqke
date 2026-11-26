@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from railway.config import SEED_DEMO
 from railway.db import connect, migrate, redis
 from railway.middleware import LoginQuota, RequestTrace
-from railway.routes import bags, claims, search, session, transfers
+from railway.routes import audits, bags, claims, search, session, transfers
 from scripts.seed_demo import seed
 
 log = getLogger("rail.startup")
@@ -28,7 +28,7 @@ async def lifespan(app):
 app = FastAPI(title="北砾铁路拾遗交接", lifespan=lifespan)
 app.add_middleware(LoginQuota)
 app.add_middleware(RequestTrace)
-for module in (session, bags, search, claims, transfers):
+for module in (session, bags, search, claims, transfers, audits):
     app.include_router(module.router)
 
 

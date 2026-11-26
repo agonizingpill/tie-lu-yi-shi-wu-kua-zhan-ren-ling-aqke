@@ -54,3 +54,5 @@
   .recall-ticket { grid-template-columns: 1fr 1fr; }
   .recall-ticket form { grid-column: span 2; justify-self: start; }
 }
+.audit-drop td { background: color-mix(in srgb, var(--orange) 12%, transparent); }
+#start-audit { margin-bottom: 14px; }

@@ -33,4 +33,8 @@ export const api = {
   transfers: () => request('/transfers'),
   dispatch: body => request('/transfers', body),
   receive: (code, seal) => request('/transfers/' + encodeURIComponent(code) + '/receive', {scanned_seal: seal}),
+  audits: () => request('/audits'),
+  audit: id => request('/audits/' + id),
+  startAudit: () => request('/audits', {}),
+  runAudit: id => request('/audits/' + id + '/run', {}),
 };
